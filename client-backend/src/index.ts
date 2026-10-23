@@ -1,3 +1,4 @@
+
 import express from "express";
 import cors from "cors";
 import { config } from "./config/index.js";
@@ -14,24 +15,38 @@ import conversationsRouter from "./routes/conversations.js";
 
 const app = express();
 
+// Render provides PORT through environment variables.
+// Bind to 0.0.0.0 so Render can route external requests to this service.
+const PORT = Number(process.env.PORT) || config.port || 3001;
+const HOST = "0.0.0.0";
+
 // Middleware
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or dev tools)
-      if (!origin) return callback(null, true);
+      // Allow requests with no origin (curl, mobile apps, and dev tools).
+      // Existing behavior preserved.
+      if (!origin) {
+        return callback(null, true);
+      }
+
       return callback(null, true);
     },
     credentials: true,
   })
 );
+
 app.use(express.json());
 
-// Routes
+// Health check
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", app: "ASTRA AI Backend-for-Frontend" });
+  res.status(200).json({
+    status: "ok",
+    app: "ASTRA AI Backend-for-Frontend",
+  });
 });
 
+// API routes
 app.use("/api/chat", chatRouter);
 app.use("/api/tools", toolsRouter);
 app.use("/api/tasks", tasksRouter);
@@ -41,24 +56,70 @@ app.use("/api/status", statusRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/conversations", conversationsRouter);
 
-// Global Error Handler
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[Backend Server Error]:", err);
-  res.status(500).json({ error: "Internal Server Error", message: err?.message });
-});
+// Global error handler
+app.use(
+  (
+    err: any,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    console.error("[Backend Server Error]:", err);
 
-// Start Server
-app.listen(config.port, config.host, async () => {
-  console.log(`=======================================================`);
-  console.log(` 🚀 ASTRA AI Client Backend (BFF) Running`);
-  console.log(` 🌐 Server URL    : http://${config.host}:${config.port}`);
-  console.log(` 🔌 MCP Endpoint  : ${config.mcpServerUrl}`);
-  console.log(`=======================================================`);
-
-  // Attempt initial background connection to MCP Server
-  try {
-    await mcpClientManager.connect();
-  } catch (e) {
-    console.warn(`[MCP Init Notice] MCP server at ${config.mcpServerUrl} is not yet reachable. Will reconnect on request.`);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message:
+        process.env.NODE_ENV === "production"
+          ? "An unexpected server error occurred."
+          : err?.message,
+    });
   }
+);
+
+// Start the HTTP server
+const httpServer = app.listen(PORT, HOST, () => {
+  console.log("=======================================================");
+  console.log("🚀 ASTRA AI Client Backend (BFF) Running");
+  console.log(`🌐 Host            : ${HOST}`);
+  console.log(`🔌 Port            : ${PORT}`);
+  console.log(`🔗 Health Check    : /api/health`);
+  console.log(`🔌 MCP Endpoint    : ${config.mcpServerUrl}`);
+  console.log("=======================================================");
+
+  // Connect to the MCP server after the HTTP server starts.
+  // A failed MCP connection will not prevent the API from starting.
+  void mcpClientManager
+    .connect()
+    .then(() => {
+      console.log(
+        "[MCP Client] Successfully connected to the MCP server."
+      );
+    })
+    .catch((error: unknown) => {
+      console.warn(
+        `[MCP Init Notice] Could not connect to ${config.mcpServerUrl}.`,
+        error
+      );
+      console.warn(
+        "[MCP Init Notice] The backend is running; MCP may reconnect on a later request."
+      );
+    });
 });
+
+// Graceful shutdown
+const shutdown = (signal: string) => {
+  console.log(`[Backend] ${signal} received. Shutting down...`);
+
+  httpServer.close((error) => {
+    if (error) {
+      console.error("[Backend] Error while closing HTTP server:", error);
+      process.exit(1);
+    }
+
+    console.log("[Backend] HTTP server closed.");
+    process.exit(0);
+  });
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
