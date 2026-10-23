@@ -1,0 +1,9 @@
+
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://astra-ai-backend-822o.onrender.com/api/:path*"
+    }
+  ]
+}
