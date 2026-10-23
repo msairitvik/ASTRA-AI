@@ -1,0 +1,29 @@
+{
+  "name": "astra-client-backend",
+  "version": "1.0.0",
+  "description": "ASTRA AI Backend-for-Frontend with official MCP Client SDK integration",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "tsx src/tests/conversational-regression.ts",
+    "test:e2e": "tsx src/tests/e2e-acceptance.ts",
+    "test:provider": "tsx src/tests/provider-policy.test.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

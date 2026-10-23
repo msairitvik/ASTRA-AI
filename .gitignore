@@ -1,0 +1,44 @@
+# Environment variables and secrets
+.env
+.env.local
+*.env
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# SQLite databases & test databases
+*.db-journal
+*.db-wal
+*.db-shm
+test_astra.db
+test_protocol_astra.db
+
+# Logs and test caches
+*.log
+.pytest_cache/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Environment examples
+!.env.example
+
+# Additional SQLite database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Coverage and test reports
+coverage/
+.nyc_output/
